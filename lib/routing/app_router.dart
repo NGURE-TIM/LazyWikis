@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lazywikis/ui/dashboard/dashboard_screen.dart';
+import 'package:lazywikis/ui/guide_editor/guide_editor_screen.dart';
 import 'route_names.dart';
 
 /// GoRouter configuration for app navigation
@@ -10,53 +12,34 @@ class AppRouter {
       routes: [
         GoRoute(
           path: RouteNames.dashboard,
-          builder: (context, state) => const DashboardPlaceholder(),
+          pageBuilder: (context, state) =>
+              const NoTransitionPage(child: DashboardScreen()),
+          name: RouteNames.dashboard,
         ),
         GoRoute(
           path: RouteNames.newGuide,
-          builder: (context, state) =>
-              const GuideEditorPlaceholder(isNew: true),
+          pageBuilder: (context, state) =>
+              const NoTransitionPage(child: GuideEditorScreen(guideId: null)),
+          name: RouteNames.newGuide,
         ),
         GoRoute(
           path: RouteNames.editGuide,
-          builder: (context, state) {
+          pageBuilder: (context, state) {
             final id = state.pathParameters['id']!;
-            return GuideEditorPlaceholder(isNew: false, guideId: id);
+            return NoTransitionPage(child: GuideEditorScreen(guideId: id));
           },
+          name: 'edit_guide',
         ),
         GoRoute(
           path: RouteNames.settings,
-          builder: (context, state) => const SettingsPlaceholder(),
+          pageBuilder: (context, state) =>
+              const NoTransitionPage(child: SettingsPlaceholder()),
+          name: RouteNames.settings,
         ),
       ],
-    );
-  }
-}
-
-// Placeholder screens - will be replaced in later phases
-class DashboardPlaceholder extends StatelessWidget {
-  const DashboardPlaceholder({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Dashboard')),
-      body: const Center(child: Text('Dashboard - Coming in Phase 2')),
-    );
-  }
-}
-
-class GuideEditorPlaceholder extends StatelessWidget {
-  final bool isNew;
-  final String? guideId;
-
-  const GuideEditorPlaceholder({super.key, required this.isNew, this.guideId});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text(isNew ? 'New Guide' : 'Edit Guide: $guideId')),
-      body: const Center(child: Text('Guide Editor - Coming in Phase 3')),
+      observers: [
+    DashboardScreen.routeObserver,
+  ],
     );
   }
 }
