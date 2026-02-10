@@ -1,7 +1,7 @@
 # LazyWikis - MediaWiki Documentation Builder
 
 ## User Journey
-**START HERE:** Dashboard → Create New Guide → Edit Guide → Download/Deploy
+**START HERE:** Dashboard → Create New Guide → Edit Guide → Download
 
 ---
 
