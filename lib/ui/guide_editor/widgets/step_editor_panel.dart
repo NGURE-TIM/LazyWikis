@@ -175,7 +175,7 @@ class _StepEditorPanelState extends State<StepEditorPanel> {
     }
 
     return Padding(
-      padding: const EdgeInsets.all(24.0),
+      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -194,7 +194,7 @@ class _StepEditorPanelState extends State<StepEditorPanel> {
               ),
             ],
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 12),
 
           // Title
           TextFormField(
@@ -250,7 +250,7 @@ class _StepEditorPanelState extends State<StepEditorPanel> {
               _buildCustomColorButton(),
             ],
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 12),
 
           // Content List
           Expanded(
@@ -276,7 +276,7 @@ class _StepEditorPanelState extends State<StepEditorPanel> {
                       final content = widget.step!.contents[index];
                       return Padding(
                         key: ValueKey(content.id),
-                        padding: const EdgeInsets.only(bottom: 16.0),
+                        padding: const EdgeInsets.only(bottom: 8.0),
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -300,14 +300,17 @@ class _StepEditorPanelState extends State<StepEditorPanel> {
 
           // Add Buttons
           const Divider(),
-          const SizedBox(height: 16),
-          Text(
-            'Add Content:',
-            style: Theme.of(
-              context,
-            ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.bold),
+          const SizedBox(height: 12),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 4),
+            child: Text(
+              'Add Content:',
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.bold),
+            ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 4),
           Wrap(
             spacing: 12,
             runSpacing: 12,

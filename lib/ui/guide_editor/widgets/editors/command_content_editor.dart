@@ -102,7 +102,7 @@ class _CommandContentEditorState extends State<CommandContentEditor> {
                   ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 8),
             TextField(
               controller: _commandController,
               maxLines: null,
@@ -115,7 +115,7 @@ class _CommandContentEditorState extends State<CommandContentEditor> {
               style: const TextStyle(fontFamily: 'monospace'),
               onChanged: (_) => _updateContent(),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 8),
             Row(
               children: [
                 Checkbox(

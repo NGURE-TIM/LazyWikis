@@ -173,13 +173,13 @@ class _ScreenshotContentEditorState extends State<ScreenshotContentEditor> {
                   ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 8),
 
             // Image or placeholder
             if (widget.content.image != null) ...[
               // Annotation toolbar
               _buildAnnotationToolbar(),
-              const SizedBox(height: 16),
+              const SizedBox(height: 8),
 
               // Image with annotations
               Container(
@@ -251,7 +251,7 @@ class _ScreenshotContentEditorState extends State<ScreenshotContentEditor> {
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 8),
 
               // Caption
               TextField(
