@@ -5,7 +5,7 @@ import 'package:lazywikis/utils/link_opener.dart';
 /// Converts basic WikiText markup to Flutter widgets
 class WikiTextRenderer {
   /// Parse WikiText and return formatted widgets
-  static List<Widget> render(String wikiText) {
+  static List<Widget> render(BuildContext context, String wikiText) {
     final widgets = <Widget>[];
     final lines = wikiText.split('\n');
     final orderedCounters = <int, int>{};
@@ -62,7 +62,7 @@ class WikiTextRenderer {
 
         // Parse Color Span
         final colorMatch = RegExp(
-          r'<span style="color:(.+?)">(.+?)</span>',
+          r'<span style="color:\s*(#[0-9A-Fa-f]{3,6});?">(.+?)</span>',
         ).firstMatch(rawContent);
         if (colorMatch != null) {
           try {
@@ -89,6 +89,7 @@ class WikiTextRenderer {
               bottom: level <= 2 ? 8 : 6,
             ),
             child: _buildInlineRichText(
+              context,
               _formatInlineMarkup(rawContent),
               style: TextStyle(
                 fontSize: _headingFontSize(level),
@@ -185,7 +186,7 @@ class WikiTextRenderer {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text('• ', style: TextStyle(fontSize: 16)),
-                Expanded(child: _buildInlineRichText(content)),
+                Expanded(child: _buildInlineRichText(context, content)),
               ],
             ),
           ),
@@ -215,7 +216,7 @@ class WikiTextRenderer {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('$numberLabel ', style: const TextStyle(fontSize: 14)),
-                Expanded(child: _buildInlineRichText(content)),
+                Expanded(child: _buildInlineRichText(context, content)),
               ],
             ),
           ),
@@ -232,7 +233,7 @@ class WikiTextRenderer {
         widgets.add(
           Padding(
             padding: EdgeInsets.only(left: 16.0 * depth, top: 4),
-            child: _buildInlineRichText(content),
+            child: _buildInlineRichText(context, content),
           ),
         );
         orderedCounters.clear();
@@ -245,7 +246,7 @@ class WikiTextRenderer {
       widgets.add(
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 4),
-          child: _buildInlineRichText(_formatInlineMarkup(line)),
+          child: _buildInlineRichText(context, _formatInlineMarkup(line)),
         ),
       );
       orderedCounters.clear();
@@ -275,8 +276,17 @@ class WikiTextRenderer {
     return 15;
   }
 
-  static Widget _buildInlineRichText(String text, {TextStyle? style}) {
-    final baseStyle = style ?? const TextStyle(fontSize: 14);
+  static Widget _buildInlineRichText(
+    BuildContext context,
+    String text, {
+    TextStyle? style,
+  }) {
+    final themedDefault = DefaultTextStyle.of(
+      context,
+    ).style.copyWith(fontSize: 14);
+    final baseStyle = style == null
+        ? themedDefault
+        : themedDefault.merge(style);
     final spans = _parseInline(text, baseStyle);
     return RichText(
       text: TextSpan(style: baseStyle, children: spans),
@@ -315,15 +325,15 @@ class WikiTextRenderer {
   }
 
   static List<InlineSpan> _tokenToSpans(String token, TextStyle baseStyle) {
-    if (token.startsWith('<span style="color:')) {
+    if (token.startsWith('<span style="')) {
       final colorMatch = RegExp(
-        r'^<span style="color:\s*(#[0-9A-Fa-f]{3,6});?">(.*)<\/span>$',
+        r'^<span style="([^"]+)">(.*)<\/span>$',
       ).firstMatch(token);
       if (colorMatch != null) {
-        final color = _parseColor(colorMatch.group(1));
+        final styleDecl = colorMatch.group(1) ?? '';
         final inner = colorMatch.group(2) ?? '';
-        final colorStyle = baseStyle.copyWith(color: color ?? baseStyle.color);
-        return _parseInline(inner, colorStyle);
+        final spanStyle = _parseSpanStyle(baseStyle, styleDecl);
+        return _parseInline(inner, spanStyle);
       }
     }
 
@@ -404,7 +414,7 @@ class WikiTextRenderer {
   ) {
     final candidates = <({int start, String marker})>[];
     final markers = [
-      '<span style="color:',
+      '<span style="',
       '[http://',
       '[https://',
       '[[',
@@ -424,7 +434,7 @@ class WikiTextRenderer {
     candidates.sort((a, b) => a.start.compareTo(b.start));
     final next = candidates.first;
 
-    if (next.marker == '<span style="color:') {
+    if (next.marker == '<span style="') {
       final end = text.indexOf('</span>', next.start);
       if (end >= 0) {
         final close = end + '</span>'.length;
@@ -488,6 +498,31 @@ class WikiTextRenderer {
       return Color(int.parse(expanded.replaceFirst('#', '0xFF')));
     }
     return null;
+  }
+
+  static TextStyle _parseSpanStyle(TextStyle baseStyle, String styleDecl) {
+    Color? color = baseStyle.color;
+    Paint? background = baseStyle.background;
+
+    final declarations = styleDecl.split(';');
+    for (final decl in declarations) {
+      final parts = decl.split(':');
+      if (parts.length < 2) continue;
+      final key = parts.first.trim().toLowerCase();
+      final value = parts.sublist(1).join(':').trim();
+      if (value.isEmpty) continue;
+
+      if (key == 'color') {
+        color = _parseColor(value) ?? color;
+      } else if (key == 'background-color') {
+        final bg = _parseColor(value);
+        if (bg != null) {
+          background = Paint()..color = bg;
+        }
+      }
+    }
+
+    return baseStyle.copyWith(color: color, background: background);
   }
 
   static String _formatInlineMarkup(String text) {

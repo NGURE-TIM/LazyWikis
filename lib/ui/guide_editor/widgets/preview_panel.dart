@@ -82,7 +82,10 @@ class _PreviewPanelState extends State<PreviewPanel> {
               child: _showRendered
                   ? Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: WikiTextRenderer.render(widget.wikiText),
+                      children: WikiTextRenderer.render(
+                        context,
+                        widget.wikiText,
+                      ),
                     )
                   : SelectableText(
                       widget.wikiText,

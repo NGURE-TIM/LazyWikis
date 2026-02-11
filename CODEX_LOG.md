@@ -32,3 +32,17 @@
 **Follow-up Issues Found:**
 - Could not run full Flutter app/runtime validation in this environment (`flutter` command unavailable earlier in session).
 - `dart:html` is deprecated (analyzer info); future migration to `package:web` is recommended.
+## fix/textblock-color-and-highlight — 2026-02-11
+**Task:** Fix font color and highlight color for text blocks in generator and preview
+**Status:** COMPLETE
+**Files Modified:**
+- lib/utils/quill_to_wikitext.dart — added background color extraction from Quill attributes, combined color/background into a single `<span style="...">` when both exist, and normalized color formats (including rgb(...) -> hex).
+- lib/utils/wikitext_renderer.dart — updated span style parser to apply both `color` and `background-color` on inline text content.
+- lib/ui/guide_editor/widgets/preview_panel.dart — kept preview wired to current renderer API used to preserve corrected default text color behavior in rendered mode.
+- CODEX_LOG.md — appended this task record.
+**Decisions Made:**
+- Kept the fix strictly scoped to inline text span color/highlight behavior; removed unrelated font-size/font-family handling from this task’s diff.
+- Allowed rgb color input normalization in converter so emitted markup is always hex-based and server-ready.
+**Regressions found and restored from last commit:**
+- Restored text-block rendered text to use themed/default text styling path (instead of visually defaulting to black in dark theme).
+- Restored missing highlight (`background`) emission and rendering for text-block inline content.

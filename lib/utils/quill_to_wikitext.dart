@@ -162,8 +162,19 @@ class QuillToWikiText {
     }
 
     final normalizedColor = _normalizeHexColor(attributes['color']?.toString());
+    final normalizedBackground = _normalizeHexColor(
+      attributes['background']?.toString(),
+    );
+    final styleParts = <String>[];
     if (normalizedColor != null) {
-      formatted = '<span style="color:$normalizedColor;">$formatted</span>';
+      styleParts.add('color:$normalizedColor');
+    }
+    if (normalizedBackground != null) {
+      styleParts.add('background-color:$normalizedBackground');
+    }
+
+    if (styleParts.isNotEmpty) {
+      formatted = '<span style="${styleParts.join('; ')};">$formatted</span>';
     }
 
     return formatted;
@@ -187,6 +198,19 @@ class QuillToWikiText {
       final g = color[2];
       final b = color[3];
       return '#$r$r$g$g$b$b'.toUpperCase();
+    }
+    final rgbMatch = RegExp(
+      r'^rgb\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)$',
+      caseSensitive: false,
+    ).firstMatch(color);
+    if (rgbMatch != null) {
+      final r = int.parse(rgbMatch.group(1)!);
+      final g = int.parse(rgbMatch.group(2)!);
+      final b = int.parse(rgbMatch.group(3)!);
+      if (r <= 255 && g <= 255 && b <= 255) {
+        return '#${r.toRadixString(16).padLeft(2, '0')}${g.toRadixString(16).padLeft(2, '0')}${b.toRadixString(16).padLeft(2, '0')}'
+            .toUpperCase();
+      }
     }
     return null;
   }
