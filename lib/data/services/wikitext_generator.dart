@@ -6,15 +6,16 @@ import 'package:lazywikis/utils/quill_to_wikitext.dart';
 
 class WikiTextGenerator {
   /// Converts Guide object to MediaWiki markup
-  String generate(Guide guide) {
+  String generate(Guide guide, {bool includeToc = true}) {
     final buffer = StringBuffer();
+    final guideTitle = _sanitizeHeadingText(guide.title, fallback: 'Guide');
 
     // Title (Level 1 heading)
-    buffer.writeln('= ${guide.title} =');
+    buffer.writeln('= $guideTitle =');
     buffer.writeln();
 
     // Table of Contents (if included)
-    if (guide.hasTableOfContents) {
+    if (includeToc && guide.hasTableOfContents) {
       buffer.writeln('__TOC__');
       buffer.writeln();
     }
@@ -25,8 +26,11 @@ class WikiTextGenerator {
       buffer.writeln();
     }
 
-    // Introduction (Lead Section - no header)
+    // Introduction section
     if (guide.introduction != null) {
+      buffer.writeln('== Introduction ==');
+      buffer.writeln();
+
       // Check if introduction has new content blocks
       if (guide.introduction!.contents.isNotEmpty) {
         for (var content in guide.introduction!.contents) {
@@ -80,25 +84,15 @@ class WikiTextGenerator {
     final buffer = StringBuffer();
     final level = step.level ?? 0;
 
-    // Calculate header level: Base is 2 (==), plus indentation level
-    final headerMarks = '=' * (2 + level);
-
-    // Apply formatting to title
-    String formattedTitle = step.title;
-
-    // Apply bold if enabled
-    if (step.isBold) {
-      formattedTitle = "'''$formattedTitle'''";
-    }
-
-    // Apply color if set
-    if (step.titleColor != null) {
-      formattedTitle =
-          '<span style="color:${step.titleColor}">$formattedTitle</span>';
-    }
+    // MediaWiki section levels:
+    // - top-level step: level 2
+    // - nested step(s): level 3
+    final headingLevel = level <= 0 ? 2 : 3;
+    final headerMarks = '=' * headingLevel;
+    final plainTitle = _sanitizeHeadingText(step.title);
 
     // Step heading
-    buffer.writeln('$headerMarks $formattedTitle $headerMarks');
+    buffer.writeln('$headerMarks $plainTitle $headerMarks');
     buffer.writeln();
 
     // Use new content blocks if available
@@ -199,5 +193,16 @@ class WikiTextGenerator {
   String _formatRichText(String text) {
     // Convert Quill Delta JSON to WikiText
     return QuillToWikiText.convert(text);
+  }
+
+  String _sanitizeHeadingText(String text, {String fallback = 'Untitled'}) {
+    final withoutHtml = text.replaceAll(RegExp(r'<[^>]*>'), '');
+    final withoutWikiFormatting = withoutHtml.replaceAll(RegExp(r"'{2,}"), '');
+    final withoutHeadingChars = withoutWikiFormatting.replaceAll('=', '');
+    final normalized = withoutHeadingChars
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
+
+    return normalized.isEmpty ? fallback : normalized;
   }
 }

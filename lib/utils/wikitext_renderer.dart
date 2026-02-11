@@ -21,9 +21,13 @@ class WikiTextRenderer {
 
       // Headers (= Title =, == Section ==, etc.)
       if (line.startsWith('=') && line.endsWith('=')) {
-        final level = _countLeadingChars(line, '=');
-        // Remove outer = marks
-        String rawContent = line.replaceAll(RegExp(r'^=+| =+$|=+$'), '').trim();
+        final headerMatch = RegExp(r'^(=+)\s*(.*?)\s*\1$').firstMatch(line);
+        final level = headerMatch != null
+            ? headerMatch.group(1)!.length
+            : _countLeadingChars(line, '=');
+        String rawContent = headerMatch != null
+            ? headerMatch.group(2) ?? ''
+            : line.replaceAll(RegExp(r'^=+| =+$|=+$'), '').trim();
 
         Color? titleColor;
         bool isBoldTitle = false;
@@ -52,15 +56,14 @@ class WikiTextRenderer {
 
         widgets.add(
           Padding(
-            padding: const EdgeInsets.only(top: 16, bottom: 8),
+            padding: EdgeInsets.only(
+              top: level <= 2 ? 16 : 12,
+              bottom: level <= 2 ? 8 : 6,
+            ),
             child: Text(
               _formatInlineMarkup(rawContent), // Clean up any remaining markup
               style: TextStyle(
-                fontSize: level == 1
-                    ? 24
-                    : level == 2
-                    ? 20
-                    : 16,
+                fontSize: _headingFontSize(level),
                 fontWeight: isBoldTitle ? FontWeight.w900 : FontWeight.bold,
                 color: titleColor,
               ),
@@ -198,6 +201,13 @@ class WikiTextRenderer {
       }
     }
     return count;
+  }
+
+  static double _headingFontSize(int level) {
+    if (level <= 1) return 24;
+    if (level == 2) return 20;
+    if (level == 3) return 17;
+    return 15;
   }
 
   static String _formatInlineMarkup(String text) {
