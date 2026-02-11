@@ -1,7 +1,7 @@
 import 'package:lazywikis/data/models/guide.dart';
+import 'package:lazywikis/data/models/guide_metadata.dart';
 import 'package:lazywikis/data/models/step.dart';
 import 'package:lazywikis/data/models/step_content.dart';
-import 'package:lazywikis/data/models/guide_metadata.dart';
 import 'package:lazywikis/utils/quill_to_wikitext.dart';
 
 class WikiTextGenerator {
@@ -22,39 +22,55 @@ class WikiTextGenerator {
 
     // Metadata section (optional)
     if (guide.metadata != null) {
-      buffer.writeln(_generateMetadata(guide.metadata!));
-      buffer.writeln();
+      _appendSection(buffer, _generateMetadata(guide.metadata!));
     }
 
     // Introduction section
     if (guide.introduction != null) {
-      buffer.writeln('== Introduction ==');
-      buffer.writeln();
+      final introBuffer = StringBuffer();
+      introBuffer.writeln('== Introduction ==');
 
-      // Check if introduction has new content blocks
       if (guide.introduction!.contents.isNotEmpty) {
-        for (var content in guide.introduction!.contents) {
-          buffer.writeln(_generateContent(content));
+        final introContent = _joinContentBlocks(guide.introduction!.contents);
+        if (introContent.isNotEmpty) {
+          introBuffer.writeln();
+          introBuffer.writeln(introContent);
         }
-        buffer.writeln();
-      } else if (guide.introduction!.description != null &&
-          guide.introduction!.description!.isNotEmpty) {
-        // Legacy fallback
-        buffer.writeln(_formatRichText(guide.introduction!.description!));
-        buffer.writeln();
-        buffer.writeln(_generateStepContentLegacy(guide.introduction!));
-        buffer.writeln();
+      } else {
+        final introBlocks = <String>[];
+        if (guide.introduction!.description != null &&
+            guide.introduction!.description!.isNotEmpty) {
+          final introText = _normalizeBlock(
+            _formatRichText(guide.introduction!.description!),
+          );
+          if (introText.isNotEmpty) {
+            introBlocks.add(introText);
+          }
+        }
+
+        final introLegacy = _normalizeBlock(
+          _generateStepContentLegacy(guide.introduction!),
+        );
+        if (introLegacy.isNotEmpty) {
+          introBlocks.add(introLegacy);
+        }
+
+        if (introBlocks.isNotEmpty) {
+          introBuffer.writeln();
+          introBuffer.writeln(introBlocks.join('\n\n'));
+        }
       }
+
+      _appendSection(buffer, introBuffer.toString());
     }
 
     // Process steps
-    for (var step in guide.steps) {
-      buffer.writeln(_generateStep(step));
-      buffer.writeln();
+    for (final step in guide.steps) {
+      _appendSection(buffer, _generateStep(step));
     }
 
     // Categories
-    for (var category in guide.categories) {
+    for (final category in guide.categories) {
       buffer.writeln('[[Category:$category]]');
     }
 
@@ -62,22 +78,20 @@ class WikiTextGenerator {
   }
 
   String _generateMetadata(GuideMetadata metadata) {
-    final buffer = StringBuffer();
+    final lines = <String>[];
     if (metadata.description != null && metadata.description!.isNotEmpty) {
-      buffer.writeln("''${metadata.description}''");
+      lines.add("''${metadata.description}''");
     }
     if (metadata.version != null) {
-      buffer.writeln("* Version: ${metadata.version}");
+      lines.add('* Version: ${metadata.version}');
     }
     if (metadata.author != null) {
-      buffer.writeln("* Author: ${metadata.author}");
+      lines.add('* Author: ${metadata.author}');
     }
     if (metadata.date != null) {
-      buffer.writeln(
-        "* Date: ${metadata.date!.toIso8601String().split('T')[0]}",
-      );
+      lines.add('* Date: ${metadata.date!.toIso8601String().split('T')[0]}');
     }
-    return buffer.toString();
+    return lines.join('\n');
   }
 
   String _generateStep(Step step) {
@@ -90,7 +104,7 @@ class WikiTextGenerator {
     final headingLevel = level <= 0 ? 2 : 3;
     final headerMarks = '=' * headingLevel;
     final plainTitle = _sanitizeHeadingText(step.title);
-    String formattedTitle = plainTitle;
+    var formattedTitle = plainTitle;
 
     if (step.isBold) {
       formattedTitle = "'''$formattedTitle'''";
@@ -103,16 +117,21 @@ class WikiTextGenerator {
 
     // Step heading
     buffer.writeln('$headerMarks $formattedTitle $headerMarks');
-    buffer.writeln();
 
     // Use new content blocks if available
     if (step.contents.isNotEmpty) {
-      for (var content in step.contents) {
-        buffer.write(_generateContent(content));
+      final contentBody = _joinContentBlocks(step.contents);
+      if (contentBody.isNotEmpty) {
+        buffer.writeln();
+        buffer.writeln(contentBody);
       }
     } else {
       // Legacy fallback
-      buffer.write(_generateStepContentLegacy(step));
+      final legacyBody = _normalizeBlock(_generateStepContentLegacy(step));
+      if (legacyBody.isNotEmpty) {
+        buffer.writeln();
+        buffer.writeln(legacyBody);
+      }
     }
 
     return buffer.toString();
@@ -124,8 +143,10 @@ class WikiTextGenerator {
     switch (content.type) {
       case StepContentType.text:
         if (content.text != null && content.text!.isNotEmpty) {
-          buffer.writeln(_formatRichText(content.text!));
-          buffer.writeln();
+          final text = _normalizeBlock(_formatRichText(content.text!));
+          if (text.isNotEmpty) {
+            buffer.write(text);
+          }
         }
         break;
 
@@ -134,17 +155,16 @@ class WikiTextGenerator {
           buffer.writeln('<pre>');
           buffer.writeln(content.text);
           buffer.writeln('</pre>');
-          buffer.writeln();
 
           // Output (if enabled)
           if (content.showOutput &&
               content.output != null &&
               content.output!.isNotEmpty) {
+            buffer.writeln();
             buffer.writeln('Output:');
             buffer.writeln('<pre>');
             buffer.writeln(content.output);
             buffer.writeln('</pre>');
-            buffer.writeln();
           }
         }
         break;
@@ -152,10 +172,9 @@ class WikiTextGenerator {
       case StepContentType.image:
         if (content.image != null) {
           final caption = content.caption ?? 'Screenshot';
-          buffer.writeln(
+          buffer.write(
             '[[File:${content.image!.filename}|thumb|300px|$caption]]',
           );
-          buffer.writeln();
         }
         break;
     }
@@ -165,39 +184,64 @@ class WikiTextGenerator {
 
   // Legacy content generation for backward compatibility
   String _generateStepContentLegacy(Step step) {
-    final buffer = StringBuffer();
+    final blocks = <String>[];
 
     // Text content
     if (step.description != null && step.description!.isNotEmpty) {
-      buffer.writeln(_formatRichText(step.description!));
-      buffer.writeln();
+      final text = _normalizeBlock(_formatRichText(step.description!));
+      if (text.isNotEmpty) {
+        blocks.add(text);
+      }
     }
 
     // Command block
     if (step.command != null && step.command!.isNotEmpty) {
-      buffer.writeln('<pre>');
-      buffer.writeln(step.command);
-      buffer.writeln('</pre>');
-      buffer.writeln();
+      final command = StringBuffer();
+      command.writeln('<pre>');
+      command.writeln(step.command);
+      command.writeln('</pre>');
 
       // Output (if enabled)
       if (step.showOutput && step.output != null && step.output!.isNotEmpty) {
-        buffer.writeln('Output:');
-        buffer.writeln('<pre>');
-        buffer.writeln(step.output);
-        buffer.writeln('</pre>');
-        buffer.writeln();
+        command.writeln();
+        command.writeln('Output:');
+        command.writeln('<pre>');
+        command.writeln(step.output);
+        command.writeln('</pre>');
       }
+
+      blocks.add(_normalizeBlock(command.toString()));
     }
 
     // Screenshot
     if (step.image != null) {
       final caption = step.imageCaption ?? step.title;
-      buffer.writeln('[[File:${step.image!.filename}|thumb|300px|$caption]]');
-      buffer.writeln();
+      blocks.add('[[File:${step.image!.filename}|thumb|300px|$caption]]');
     }
 
-    return buffer.toString();
+    return blocks.join('\n\n');
+  }
+
+  String _joinContentBlocks(List<StepContent> contents) {
+    final blocks = <String>[];
+    for (final content in contents) {
+      final block = _normalizeBlock(_generateContent(content));
+      if (block.isNotEmpty) {
+        blocks.add(block);
+      }
+    }
+    return blocks.join('\n\n');
+  }
+
+  void _appendSection(StringBuffer buffer, String section) {
+    final normalized = _normalizeBlock(section);
+    if (normalized.isEmpty) return;
+    buffer.writeln(normalized);
+    buffer.writeln();
+  }
+
+  String _normalizeBlock(String text) {
+    return text.replaceAll(RegExp(r'[ \t]+\n'), '\n').trimRight();
   }
 
   String _formatRichText(String text) {
