@@ -3,6 +3,7 @@ import 'package:lazywikis/data/models/guide_metadata.dart';
 import 'package:lazywikis/data/models/image_data.dart';
 import 'package:lazywikis/data/models/step.dart';
 import 'package:lazywikis/data/models/step_content.dart';
+import 'package:lazywikis/config/constants.dart';
 import 'package:lazywikis/utils/image_filename_helper.dart';
 import 'package:lazywikis/utils/quill_to_wikitext.dart';
 
@@ -217,9 +218,7 @@ class WikiTextGenerator {
             guideTitle: guideTitle,
             caption: caption,
           );
-          buffer.write(
-            '[[File:$filename|thumb|300px|${caption ?? "Screenshot"}]]',
-          );
+          buffer.write(_buildImageMarkup(filename, caption));
         }
         break;
     }
@@ -274,7 +273,7 @@ class WikiTextGenerator {
         guideTitle: guideTitle,
         caption: caption,
       );
-      blocks.add('[[File:$filename|thumb|300px|${caption ?? step.title}]]');
+      blocks.add(_buildImageMarkup(filename, caption));
     }
 
     return blocks.join('\n\n');
@@ -350,5 +349,17 @@ class WikiTextGenerator {
         .trim();
 
     return normalized.isEmpty ? fallback : normalized;
+  }
+
+  String _buildImageMarkup(String filename, String? caption) {
+    final params = <String>[
+      'center',
+      'none',
+      '${AppConstants.wikiImageWidthPx}px',
+    ];
+    if (caption != null && caption.isNotEmpty) {
+      params.add(caption);
+    }
+    return '[[File:$filename|${params.join('|')}]]';
   }
 }

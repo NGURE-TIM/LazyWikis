@@ -18,6 +18,7 @@ class AppConstants {
   static const String defaultGuideTitle = 'New Guide';
   static const String defaultStepTitle = 'New Step';
   static const String defaultCommandLanguage = 'bash';
+  static const int wikiImageWidthPx = 800;
 
   // Storage Keys
   static const String storageKeyGuides = 'guides';

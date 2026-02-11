@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lazywikis/config/constants.dart';
 import 'package:lazywikis/utils/link_opener.dart';
 
 /// Simple WikiText renderer for preview display
@@ -169,6 +170,82 @@ class WikiTextRenderer {
         );
         orderedCounters.clear();
         lastListType = null;
+        continue;
+      }
+
+      final fileMatch = RegExp(
+        r'^\[\[File:([^|\]]+)(?:\|(.+))?\]\]$',
+        caseSensitive: false,
+      ).firstMatch(line.trim());
+      if (fileMatch != null) {
+        final filename = fileMatch.group(1)!.trim();
+        final paramsRaw = fileMatch.group(2);
+        var caption = '';
+        var widthPx = AppConstants.wikiImageWidthPx;
+
+        if (paramsRaw != null && paramsRaw.trim().isNotEmpty) {
+          for (final part in paramsRaw.split('|')) {
+            final token = part.trim();
+            if (token.isEmpty) continue;
+            final lower = token.toLowerCase();
+            if (RegExp(r'^\d+px$').hasMatch(lower)) {
+              widthPx = int.parse(lower.replaceAll('px', ''));
+              continue;
+            }
+            if (_isImageOption(lower)) {
+              continue;
+            }
+            caption = token;
+          }
+        }
+
+        widgets.add(
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Align(
+              alignment: Alignment.center,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: widthPx.toDouble()),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: Colors.grey.shade300),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.image_outlined,
+                        size: 32,
+                        color: Colors.grey.shade600,
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        filename,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      if (caption.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          caption,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: Colors.grey.shade700),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+        orderedCounters.clear();
+        lastListType = null;
+        i++;
         continue;
       }
 
@@ -564,5 +641,16 @@ class WikiTextRenderer {
     return text
         .replaceAll(RegExp(r'\[\[Category:.+?\]\]'), '') // Categories
         .replaceAll('__TOC__', ''); // Table of contents
+  }
+
+  static bool _isImageOption(String token) {
+    return token == 'center' ||
+        token == 'none' ||
+        token == 'thumb' ||
+        token == 'left' ||
+        token == 'right' ||
+        token == 'frame' ||
+        token == 'frameless' ||
+        token.startsWith('upright=');
   }
 }
