@@ -189,16 +189,18 @@ class WikiTextGenerator {
 
       case StepContentType.command:
         if (content.text != null && content.text!.isNotEmpty) {
-          buffer.writeln('<pre>');
+          final language = (content.language ?? 'bash').trim();
+          buffer.writeln(';Command:');
+          buffer.writeln('<syntaxhighlight lang="$language">');
           buffer.writeln(content.text);
-          buffer.writeln('</pre>');
+          buffer.writeln('</syntaxhighlight>');
 
           // Output (if enabled)
           if (content.showOutput &&
               content.output != null &&
               content.output!.isNotEmpty) {
             buffer.writeln();
-            buffer.writeln('Output:');
+            buffer.writeln(';Output:');
             buffer.writeln('<pre>');
             buffer.writeln(content.output);
             buffer.writeln('</pre>');
@@ -245,14 +247,16 @@ class WikiTextGenerator {
     // Command block
     if (step.command != null && step.command!.isNotEmpty) {
       final command = StringBuffer();
-      command.writeln('<pre>');
+      final language = (step.commandLanguage ?? 'bash').trim();
+      command.writeln(';Command:');
+      command.writeln('<syntaxhighlight lang="$language">');
       command.writeln(step.command);
-      command.writeln('</pre>');
+      command.writeln('</syntaxhighlight>');
 
       // Output (if enabled)
       if (step.showOutput && step.output != null && step.output!.isNotEmpty) {
         command.writeln();
-        command.writeln('Output:');
+        command.writeln(';Output:');
         command.writeln('<pre>');
         command.writeln(step.output);
         command.writeln('</pre>');

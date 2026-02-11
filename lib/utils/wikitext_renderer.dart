@@ -138,6 +138,25 @@ class WikiTextRenderer {
         continue;
       }
 
+      final definitionLabelMatch = RegExp(
+        r'^;\s*(.+?)\s*$',
+      ).firstMatch(line.trim());
+      if (definitionLabelMatch != null) {
+        widgets.add(
+          Padding(
+            padding: const EdgeInsets.only(top: 8, bottom: 4),
+            child: Text(
+              definitionLabelMatch.group(1)!,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+        );
+        orderedCounters.clear();
+        lastListType = null;
+        i++;
+        continue;
+      }
+
       // Pre blocks (output)
       if (line.contains('<pre>')) {
         final preLines = <String>[];
