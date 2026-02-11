@@ -90,9 +90,19 @@ class WikiTextGenerator {
     final headingLevel = level <= 0 ? 2 : 3;
     final headerMarks = '=' * headingLevel;
     final plainTitle = _sanitizeHeadingText(step.title);
+    String formattedTitle = plainTitle;
+
+    if (step.isBold) {
+      formattedTitle = "'''$formattedTitle'''";
+    }
+    if (step.titleColor != null &&
+        RegExp(r'^#[0-9A-Fa-f]{6}$').hasMatch(step.titleColor!)) {
+      formattedTitle =
+          '<span style="color:${step.titleColor!.toUpperCase()};">$formattedTitle</span>';
+    }
 
     // Step heading
-    buffer.writeln('$headerMarks $plainTitle $headerMarks');
+    buffer.writeln('$headerMarks $formattedTitle $headerMarks');
     buffer.writeln();
 
     // Use new content blocks if available

@@ -199,6 +199,17 @@ class QuillToWikiText {
       final b = color[3];
       return '#$r$r$g$g$b$b'.toUpperCase();
     }
+    if (RegExp(r'^#[0-9A-Fa-f]{8}$').hasMatch(color)) {
+      // Quill/Flutter can emit ARGB (#AARRGGBB). Strip alpha for MediaWiki.
+      return '#${color.substring(3)}'.toUpperCase();
+    }
+    if (RegExp(r'^0x[0-9A-Fa-f]{8}$').hasMatch(color)) {
+      // Flutter Color int literal (0xAARRGGBB). Strip alpha for MediaWiki.
+      return '#${color.substring(color.length - 6)}'.toUpperCase();
+    }
+    if (RegExp(r'^0x[0-9A-Fa-f]{6}$').hasMatch(color)) {
+      return '#${color.substring(2)}'.toUpperCase();
+    }
     final rgbMatch = RegExp(
       r'^rgb\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)$',
       caseSensitive: false,
@@ -207,6 +218,19 @@ class QuillToWikiText {
       final r = int.parse(rgbMatch.group(1)!);
       final g = int.parse(rgbMatch.group(2)!);
       final b = int.parse(rgbMatch.group(3)!);
+      if (r <= 255 && g <= 255 && b <= 255) {
+        return '#${r.toRadixString(16).padLeft(2, '0')}${g.toRadixString(16).padLeft(2, '0')}${b.toRadixString(16).padLeft(2, '0')}'
+            .toUpperCase();
+      }
+    }
+    final rgbaMatch = RegExp(
+      r'^rgba\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(0|0?\.\d+|1|1\.0+)\s*\)$',
+      caseSensitive: false,
+    ).firstMatch(color);
+    if (rgbaMatch != null) {
+      final r = int.parse(rgbaMatch.group(1)!);
+      final g = int.parse(rgbaMatch.group(2)!);
+      final b = int.parse(rgbaMatch.group(3)!);
       if (r <= 255 && g <= 255 && b <= 255) {
         return '#${r.toRadixString(16).padLeft(2, '0')}${g.toRadixString(16).padLeft(2, '0')}${b.toRadixString(16).padLeft(2, '0')}'
             .toUpperCase();

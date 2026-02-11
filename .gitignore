@@ -43,3 +43,12 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Generated code analysis docs
+codebase_summary.txt
+file_map.txt
+functions_and_classes.txt
+dependencies.txt
+data_flow.txt
+logic_and_patterns.txt
+context_for_ai.txt

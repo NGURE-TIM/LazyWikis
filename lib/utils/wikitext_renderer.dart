@@ -497,6 +497,39 @@ class WikiTextRenderer {
           '#${value[1]}${value[1]}${value[2]}${value[2]}${value[3]}${value[3]}';
       return Color(int.parse(expanded.replaceFirst('#', '0xFF')));
     }
+    if (RegExp(r'^#[0-9A-Fa-f]{8}$').hasMatch(value)) {
+      return Color(int.parse('0xFF${value.substring(3)}'));
+    }
+    if (RegExp(r'^0x[0-9A-Fa-f]{8}$').hasMatch(value)) {
+      return Color(int.parse('0xFF${value.substring(value.length - 6)}'));
+    }
+    if (RegExp(r'^0x[0-9A-Fa-f]{6}$').hasMatch(value)) {
+      return Color(int.parse('0xFF${value.substring(2)}'));
+    }
+    final rgbMatch = RegExp(
+      r'^rgb\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)$',
+      caseSensitive: false,
+    ).firstMatch(value);
+    if (rgbMatch != null) {
+      final r = int.parse(rgbMatch.group(1)!);
+      final g = int.parse(rgbMatch.group(2)!);
+      final b = int.parse(rgbMatch.group(3)!);
+      if (r <= 255 && g <= 255 && b <= 255) {
+        return Color.fromARGB(255, r, g, b);
+      }
+    }
+    final rgbaMatch = RegExp(
+      r'^rgba\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(0|0?\.\d+|1|1\.0+)\s*\)$',
+      caseSensitive: false,
+    ).firstMatch(value);
+    if (rgbaMatch != null) {
+      final r = int.parse(rgbaMatch.group(1)!);
+      final g = int.parse(rgbaMatch.group(2)!);
+      final b = int.parse(rgbaMatch.group(3)!);
+      if (r <= 255 && g <= 255 && b <= 255) {
+        return Color.fromARGB(255, r, g, b);
+      }
+    }
     return null;
   }
 
