@@ -9,6 +9,7 @@ class ImageData {
   final String base64Data; // Base64 encoded image
   final String mimeType; // "image/png"
   final int fileSizeBytes;
+  final String? caption; // Optional caption for filename/display
   final List<ImageAnnotation>? annotations; // Optional drawing annotations
 
   ImageData({
@@ -16,18 +17,24 @@ class ImageData {
     required this.base64Data,
     required this.mimeType,
     required this.fileSizeBytes,
+    this.caption,
     this.annotations,
   });
 
   // Max 5MB validation
   bool get isValid => fileSizeBytes <= 5 * 1024 * 1024;
 
-  ImageData copyWith({List<ImageAnnotation>? annotations}) {
+  ImageData copyWith({
+    String? filename,
+    String? caption,
+    List<ImageAnnotation>? annotations,
+  }) {
     return ImageData(
-      filename: filename,
+      filename: filename ?? this.filename,
       base64Data: base64Data,
       mimeType: mimeType,
       fileSizeBytes: fileSizeBytes,
+      caption: caption ?? this.caption,
       annotations: annotations ?? this.annotations,
     );
   }

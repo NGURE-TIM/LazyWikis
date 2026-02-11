@@ -46,3 +46,21 @@
 **Regressions found and restored from last commit:**
 - Restored text-block rendered text to use themed/default text styling path (instead of visually defaulting to black in dark theme).
 - Restored missing highlight (`background`) emission and rendering for text-block inline content.
+## fix/image-filename-wikitext-sync — 2026-02-11
+**Task:** Sync image filenames between wikitext and ZIP; use caption as filename when available
+**Status:** COMPLETE
+**Files Modified:**
+- lib/utils/image_filename_helper.dart — added shared MediaWiki-safe filename generation (caption-first, deterministic fallback, MIME-extension mapping, sanitization, truncation).
+- lib/data/services/wikitext_generator.dart — replaced direct `image.filename` usage with shared helper for both content-block and legacy images using deterministic `stepIndex/contentIndex/guideTitle` inputs.
+- lib/data/services/export_service.dart — replaced hardcoded ZIP names with shared helper and updated exported guide image references to use matching filenames.
+- lib/data/models/image_data.dart — added optional `caption` field and expanded `copyWith` to support filename/caption updates.
+- lib/data/models/image_data.g.dart — updated JSON serialization for new `caption` field.
+- lib/ui/guide_editor/widgets/editors/screenshot_content_editor.dart — synchronized caption edits into `ImageData.caption` and preserved caption when picking/replacing images.
+- CODEX_LOG.md — appended this entry.
+**Decisions Made:**
+- Used caption as filename when present, with fallback `guide_step{n}_{m}` pattern.
+- Sanitization rules implemented: spaces -> underscores; removed `# < > [ ] | { } / : " ' ?` and other unsupported chars; kept only alphanumeric/underscore/hyphen/period; trimmed repeated separators; truncated basename to 100 chars.
+- Extension resolution prioritized MIME type and falls back to original filename extension, defaulting to `.png`.
+**Follow-up Issues Found:**
+- Existing analyzer infos remain in touched files (`print` usage in export service and minor UI lint warnings) but no compile errors.
+

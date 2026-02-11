@@ -1,7 +1,9 @@
 import 'package:lazywikis/data/models/guide.dart';
 import 'package:lazywikis/data/models/guide_metadata.dart';
+import 'package:lazywikis/data/models/image_data.dart';
 import 'package:lazywikis/data/models/step.dart';
 import 'package:lazywikis/data/models/step_content.dart';
+import 'package:lazywikis/utils/image_filename_helper.dart';
 import 'package:lazywikis/utils/quill_to_wikitext.dart';
 
 class WikiTextGenerator {
@@ -29,9 +31,14 @@ class WikiTextGenerator {
     if (guide.introduction != null) {
       final introBuffer = StringBuffer();
       introBuffer.writeln('== Introduction ==');
+      final introStepIndex = 0;
 
       if (guide.introduction!.contents.isNotEmpty) {
-        final introContent = _joinContentBlocks(guide.introduction!.contents);
+        final introContent = _joinContentBlocks(
+          guide.introduction!.contents,
+          stepIndex: introStepIndex,
+          guideTitle: guide.title,
+        );
         if (introContent.isNotEmpty) {
           introBuffer.writeln();
           introBuffer.writeln(introContent);
@@ -49,7 +56,11 @@ class WikiTextGenerator {
         }
 
         final introLegacy = _normalizeBlock(
-          _generateStepContentLegacy(guide.introduction!),
+          _generateStepContentLegacy(
+            guide.introduction!,
+            stepIndex: introStepIndex,
+            guideTitle: guide.title,
+          ),
         );
         if (introLegacy.isNotEmpty) {
           introBlocks.add(introLegacy);
@@ -65,8 +76,14 @@ class WikiTextGenerator {
     }
 
     // Process steps
-    for (final step in guide.steps) {
-      _appendSection(buffer, _generateStep(step));
+    final stepStartIndex = guide.introduction != null ? 1 : 0;
+    for (var i = 0; i < guide.steps.length; i++) {
+      final step = guide.steps[i];
+      final stepIndex = stepStartIndex + i;
+      _appendSection(
+        buffer,
+        _generateStep(step, stepIndex: stepIndex, guideTitle: guide.title),
+      );
     }
 
     // Categories
@@ -94,7 +111,11 @@ class WikiTextGenerator {
     return lines.join('\n');
   }
 
-  String _generateStep(Step step) {
+  String _generateStep(
+    Step step, {
+    required int stepIndex,
+    required String? guideTitle,
+  }) {
     final buffer = StringBuffer();
     final level = step.level ?? 0;
 
@@ -120,14 +141,24 @@ class WikiTextGenerator {
 
     // Use new content blocks if available
     if (step.contents.isNotEmpty) {
-      final contentBody = _joinContentBlocks(step.contents);
+      final contentBody = _joinContentBlocks(
+        step.contents,
+        stepIndex: stepIndex,
+        guideTitle: guideTitle,
+      );
       if (contentBody.isNotEmpty) {
         buffer.writeln();
         buffer.writeln(contentBody);
       }
     } else {
       // Legacy fallback
-      final legacyBody = _normalizeBlock(_generateStepContentLegacy(step));
+      final legacyBody = _normalizeBlock(
+        _generateStepContentLegacy(
+          step,
+          stepIndex: stepIndex,
+          guideTitle: guideTitle,
+        ),
+      );
       if (legacyBody.isNotEmpty) {
         buffer.writeln();
         buffer.writeln(legacyBody);
@@ -137,7 +168,12 @@ class WikiTextGenerator {
     return buffer.toString();
   }
 
-  String _generateContent(StepContent content) {
+  String _generateContent(
+    StepContent content, {
+    required int stepIndex,
+    required int contentIndex,
+    required String? guideTitle,
+  }) {
     final buffer = StringBuffer();
 
     switch (content.type) {
@@ -171,9 +207,18 @@ class WikiTextGenerator {
 
       case StepContentType.image:
         if (content.image != null) {
-          final caption = content.caption ?? 'Screenshot';
+          final caption = _normalizeCaption(
+            content.caption ?? content.image!.caption,
+          );
+          final filename = _resolveImageFilename(
+            content.image!,
+            stepIndex: stepIndex,
+            contentIndex: contentIndex,
+            guideTitle: guideTitle,
+            caption: caption,
+          );
           buffer.write(
-            '[[File:${content.image!.filename}|thumb|300px|$caption]]',
+            '[[File:$filename|thumb|300px|${caption ?? "Screenshot"}]]',
           );
         }
         break;
@@ -183,7 +228,11 @@ class WikiTextGenerator {
   }
 
   // Legacy content generation for backward compatibility
-  String _generateStepContentLegacy(Step step) {
+  String _generateStepContentLegacy(
+    Step step, {
+    required int stepIndex,
+    required String? guideTitle,
+  }) {
     final blocks = <String>[];
 
     // Text content
@@ -215,17 +264,38 @@ class WikiTextGenerator {
 
     // Screenshot
     if (step.image != null) {
-      final caption = step.imageCaption ?? step.title;
-      blocks.add('[[File:${step.image!.filename}|thumb|300px|$caption]]');
+      final caption = _normalizeCaption(
+        step.imageCaption ?? step.image!.caption,
+      );
+      final filename = _resolveImageFilename(
+        step.image!,
+        stepIndex: stepIndex,
+        contentIndex: 0,
+        guideTitle: guideTitle,
+        caption: caption,
+      );
+      blocks.add('[[File:$filename|thumb|300px|${caption ?? step.title}]]');
     }
 
     return blocks.join('\n\n');
   }
 
-  String _joinContentBlocks(List<StepContent> contents) {
+  String _joinContentBlocks(
+    List<StepContent> contents, {
+    required int stepIndex,
+    required String? guideTitle,
+  }) {
     final blocks = <String>[];
-    for (final content in contents) {
-      final block = _normalizeBlock(_generateContent(content));
+    for (var contentIndex = 0; contentIndex < contents.length; contentIndex++) {
+      final content = contents[contentIndex];
+      final block = _normalizeBlock(
+        _generateContent(
+          content,
+          stepIndex: stepIndex,
+          contentIndex: contentIndex,
+          guideTitle: guideTitle,
+        ),
+      );
       if (block.isNotEmpty) {
         blocks.add(block);
       }
@@ -247,6 +317,28 @@ class WikiTextGenerator {
   String _formatRichText(String text) {
     // Convert Quill Delta JSON to WikiText
     return QuillToWikiText.convert(text);
+  }
+
+  String _resolveImageFilename(
+    ImageData image, {
+    required int stepIndex,
+    required int contentIndex,
+    required String? guideTitle,
+    String? caption,
+  }) {
+    return ImageFilenameHelper.generateImageFilename(
+      image,
+      stepIndex: stepIndex,
+      contentIndex: contentIndex,
+      guideTitle: guideTitle,
+      caption: caption,
+    );
+  }
+
+  String? _normalizeCaption(String? caption) {
+    final value = caption?.trim();
+    if (value == null || value.isEmpty) return null;
+    return value;
   }
 
   String _sanitizeHeadingText(String text, {String fallback = 'Untitled'}) {

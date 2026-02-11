@@ -6,6 +6,7 @@ import 'package:lazywikis/data/models/image_data.dart';
 import 'package:lazywikis/data/services/wikitext_generator.dart';
 import 'package:lazywikis/data/services/download_service.dart';
 import 'package:lazywikis/data/services/annotation_baker.dart';
+import 'package:lazywikis/utils/image_filename_helper.dart';
 import 'package:archive/archive.dart';
 
 class ExportService {
@@ -14,7 +15,7 @@ class ExportService {
 
   void exportWikiText(Guide guide) {
     final text = _generator.generate(guide);
-    final filename = '${_sanitizeFilename(guide.title ?? "guide")}.txt';
+    final filename = '${_sanitizeFilename(guide.title)}.txt';
 
     _downloadService.downloadFile(filename, utf8.encode(text), 'text/plain');
   }
@@ -42,12 +43,8 @@ class ExportService {
     // 4. Compress
     final zipEncoder = ZipEncoder();
     final zipBytes = zipEncoder.encode(archive);
-
-    if (zipBytes != null) {
-      final filename =
-          '${_sanitizeFilename(guide.title ?? "guide")}-bundle.zip';
-      _downloadService.downloadFile(filename, zipBytes, 'application/zip');
-    }
+    final filename = '${_sanitizeFilename(guide.title)}-bundle.zip';
+    _downloadService.downloadFile(filename, zipBytes, 'application/zip');
   }
 
   /// Creates a copy of the guide with modified image steps to point to local files
@@ -59,13 +56,26 @@ class ExportService {
     // Since Guide is complex, we'll iterate and rebuild
     final newSteps = <Step>[];
 
-    for (var step in guide.steps) {
-      newSteps.add(await _processStepForZip(step, imageMap));
+    final stepStartIndex = guide.introduction != null ? 1 : 0;
+    for (var i = 0; i < guide.steps.length; i++) {
+      newSteps.add(
+        await _processStepForZip(
+          guide.steps[i],
+          imageMap,
+          stepIndex: stepStartIndex + i,
+          guideTitle: guide.title,
+        ),
+      );
     }
 
     // Process introduction if exists
     final introduction = guide.introduction != null
-        ? await _processStepForZip(guide.introduction!, imageMap)
+        ? await _processStepForZip(
+            guide.introduction!,
+            imageMap,
+            stepIndex: 0,
+            guideTitle: guide.title,
+          )
         : null;
 
     return Guide(
@@ -83,11 +93,18 @@ class ExportService {
 
   Future<Step> _processStepForZip(
     Step step,
-    Map<String, List<int>> imageMap,
-  ) async {
+    Map<String, List<int>> imageMap, {
+    required int stepIndex,
+    required String? guideTitle,
+  }) async {
     final newContents = <StepContent>[];
 
-    for (var content in step.contents) {
+    for (
+      var contentIndex = 0;
+      contentIndex < step.contents.length;
+      contentIndex++
+    ) {
+      final content = step.contents[contentIndex];
       if (content.type == StepContentType.image && content.image != null) {
         // Handle Image
         var bytes = base64Decode(content.image!.base64Data);
@@ -106,16 +123,25 @@ class ExportService {
           }
         }
 
-        final ext = _getExtension(content.image!.mimeType);
-        final filename = 'step-${step.order}-${content.id}.$ext';
+        final caption = _normalizeCaption(
+          content.caption ?? content.image!.caption,
+        );
+        final filename = ImageFilenameHelper.generateImageFilename(
+          content.image!,
+          stepIndex: stepIndex,
+          contentIndex: contentIndex,
+          guideTitle: guideTitle,
+          caption: caption,
+        );
 
         imageMap[filename] = bytes;
 
-        // Replace content with a "Text" content containing the Wiki markup
+        final updatedImage = content.image!.copyWith(
+          filename: filename,
+          caption: caption,
+        );
         newContents.add(
-          StepContent.text(
-            content: '[[File:$filename|${content.caption ?? ""}]]',
-          ),
+          content.copyWith(image: updatedImage, caption: caption),
         );
       } else {
         newContents.add(content);
@@ -139,33 +165,30 @@ class ExportService {
         }
       }
 
-      final ext = _getExtension(legacyImage.mimeType);
-      final filename = 'step-${step.order}-legacy.$ext';
-      imageMap[filename] = bytes;
-      finalContents.add(
-        StepContent.text(
-          content: '[[File:$filename|${step.imageCaption ?? ""}]]',
-        ),
+      final caption = _normalizeCaption(
+        step.imageCaption ?? legacyImage.caption,
       );
+      final filename = ImageFilenameHelper.generateImageFilename(
+        legacyImage,
+        stepIndex: stepIndex,
+        contentIndex: 0,
+        guideTitle: guideTitle,
+        caption: caption,
+      );
+      imageMap[filename] = bytes;
+      legacyImage = legacyImage.copyWith(filename: filename, caption: caption);
     }
 
-    return step.copyWith(contents: finalContents, image: null);
-  }
-
-  String _getExtension(String mime) {
-    switch (mime) {
-      case 'image/png':
-        return 'png';
-      case 'image/jpeg':
-        return 'jpg';
-      case 'image/gif':
-        return 'gif';
-      default:
-        return 'png';
-    }
+    return step.copyWith(contents: finalContents, image: legacyImage);
   }
 
   String _sanitizeFilename(String name) {
     return name.replaceAll(RegExp(r'[<>:"/\\|?*]'), '_').replaceAll(' ', '_');
+  }
+
+  String? _normalizeCaption(String? caption) {
+    final value = caption?.trim();
+    if (value == null || value.isEmpty) return null;
+    return value;
   }
 }

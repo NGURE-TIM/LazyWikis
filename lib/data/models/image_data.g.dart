@@ -11,6 +11,7 @@ ImageData _$ImageDataFromJson(Map<String, dynamic> json) => ImageData(
   base64Data: json['base64Data'] as String,
   mimeType: json['mimeType'] as String,
   fileSizeBytes: (json['fileSizeBytes'] as num).toInt(),
+  caption: json['caption'] as String?,
   annotations: (json['annotations'] as List<dynamic>?)
       ?.map((e) => ImageAnnotation.fromJson(e as Map<String, dynamic>))
       .toList(),
@@ -21,5 +22,6 @@ Map<String, dynamic> _$ImageDataToJson(ImageData instance) => <String, dynamic>{
   'base64Data': instance.base64Data,
   'mimeType': instance.mimeType,
   'fileSizeBytes': instance.fileSizeBytes,
+  'caption': instance.caption,
   'annotations': instance.annotations?.map((e) => e.toJson()).toList(),
 };

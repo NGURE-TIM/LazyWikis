@@ -78,7 +78,11 @@ class _ScreenshotContentEditorState extends State<ScreenshotContentEditor> {
   Future<void> _pickImage() async {
     final image = await widget.imageService.pickImage();
     if (image != null) {
-      widget.onUpdate(widget.content.copyWith(image: image));
+      final caption = widget.content.caption?.trim();
+      final imageWithCaption = (caption != null && caption.isNotEmpty)
+          ? image.copyWith(caption: caption)
+          : image;
+      widget.onUpdate(widget.content.copyWith(image: imageWithCaption));
     }
   }
 
@@ -265,7 +269,15 @@ class _ScreenshotContentEditorState extends State<ScreenshotContentEditor> {
                     _debounceTimer!.cancel();
                   _debounceTimer = Timer(const Duration(milliseconds: 500), () {
                     if (mounted) {
-                      widget.onUpdate(widget.content.copyWith(caption: value));
+                      final updatedImage = widget.content.image?.copyWith(
+                        caption: value.trim().isEmpty ? null : value,
+                      );
+                      widget.onUpdate(
+                        widget.content.copyWith(
+                          caption: value,
+                          image: updatedImage,
+                        ),
+                      );
                     }
                   });
                 },
