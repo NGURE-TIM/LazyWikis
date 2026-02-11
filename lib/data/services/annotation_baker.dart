@@ -26,6 +26,16 @@ class AnnotationBaker {
 
     // 4. Draw Annotations
     for (var annotation in annotations) {
+      final start = _toImageOffset(
+        annotation.start,
+        image.width.toDouble(),
+        image.height.toDouble(),
+      );
+      final end = _toImageOffset(
+        annotation.end,
+        image.width.toDouble(),
+        image.height.toDouble(),
+      );
       final paint = ui.Paint()
         ..color = annotation.color
         ..strokeWidth = annotation.strokeWidth
@@ -33,15 +43,15 @@ class AnnotationBaker {
 
       switch (annotation.type) {
         case AnnotationType.rectangle:
-          final rect = ui.Rect.fromPoints(annotation.start, annotation.end);
+          final rect = ui.Rect.fromPoints(start, end);
           canvas.drawRect(rect, paint);
           break;
         case AnnotationType.circle:
-          final rect = ui.Rect.fromPoints(annotation.start, annotation.end);
+          final rect = ui.Rect.fromPoints(start, end);
           canvas.drawOval(rect, paint);
           break;
         case AnnotationType.arrow:
-          _drawArrow(canvas, annotation.start, annotation.end, paint);
+          _drawArrow(canvas, start, end, paint);
           break;
       }
     }
@@ -104,5 +114,20 @@ class AnnotationBaker {
       ..strokeJoin = ui.StrokeJoin.round;
 
     canvas.drawPath(path, arrowPaint);
+  }
+
+  static ui.Offset _toImageOffset(
+    ui.Offset point,
+    double width,
+    double height,
+  ) {
+    if (_isRelative(point)) {
+      return ui.Offset(point.dx * width, point.dy * height);
+    }
+    return point;
+  }
+
+  static bool _isRelative(ui.Offset point) {
+    return point.dx >= 0 && point.dx <= 1 && point.dy >= 0 && point.dy <= 1;
   }
 }

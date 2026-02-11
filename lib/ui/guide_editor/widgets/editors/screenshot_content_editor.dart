@@ -29,6 +29,7 @@ class ScreenshotContentEditor extends StatefulWidget {
 
 class _ScreenshotContentEditorState extends State<ScreenshotContentEditor> {
   final TextEditingController _captionController = TextEditingController();
+  final GlobalKey _annotationAreaKey = GlobalKey();
   Timer? _debounceTimer;
 
   // Annotation state
@@ -93,17 +94,18 @@ class _ScreenshotContentEditorState extends State<ScreenshotContentEditor> {
   void _onPanStart(DragStartDetails details) {
     if (!_isAnnotating) return;
     setState(() {
-      _drawStart = details.localPosition;
+      _drawStart = _normalizeOffset(details.localPosition);
     });
   }
 
   void _onPanUpdate(DragUpdateDetails details) {
     if (!_isAnnotating || _drawStart == null) return;
     setState(() {
+      final end = _normalizeOffset(details.localPosition);
       _currentAnnotation = ImageAnnotation.create(
         type: _selectedTool,
         start: _drawStart!,
-        end: details.localPosition,
+        end: end,
         color: _selectedColor,
         strokeWidth: _strokeWidth,
       );
@@ -127,6 +129,24 @@ class _ScreenshotContentEditorState extends State<ScreenshotContentEditor> {
       );
       widget.onUpdate(widget.content.copyWith(image: updatedImage));
     }
+  }
+
+  Offset _normalizeOffset(Offset localPosition) {
+    final context = _annotationAreaKey.currentContext;
+    final renderObject = context?.findRenderObject();
+    if (renderObject is! RenderBox) {
+      return localPosition;
+    }
+
+    final size = renderObject.size;
+    if (size.width <= 0 || size.height <= 0) {
+      return localPosition;
+    }
+
+    return Offset(
+      (localPosition.dx / size.width).clamp(0.0, 1.0),
+      (localPosition.dy / size.height).clamp(0.0, 1.0),
+    );
   }
 
   void _undoLastAnnotation() {
@@ -189,6 +209,7 @@ class _ScreenshotContentEditorState extends State<ScreenshotContentEditor> {
               Container(
                 constraints: const BoxConstraints(maxHeight: 400),
                 child: RawGestureDetector(
+                  key: _annotationAreaKey,
                   gestures: _isAnnotating
                       ? {
                           ImmediatePanGestureRecognizer:

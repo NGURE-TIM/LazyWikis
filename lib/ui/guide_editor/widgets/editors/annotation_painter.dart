@@ -12,16 +12,18 @@ class AnnotationPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     // Draw all finalized annotations
     for (var annotation in annotations) {
-      _drawAnnotation(canvas, annotation);
+      _drawAnnotation(canvas, annotation, size);
     }
 
     // Draw current annotation preview
     if (currentAnnotation != null) {
-      _drawAnnotation(canvas, currentAnnotation!);
+      _drawAnnotation(canvas, currentAnnotation!, size);
     }
   }
 
-  void _drawAnnotation(Canvas canvas, ImageAnnotation annotation) {
+  void _drawAnnotation(Canvas canvas, ImageAnnotation annotation, Size size) {
+    final start = _toCanvasOffset(annotation.start, size);
+    final end = _toCanvasOffset(annotation.end, size);
     final paint = Paint()
       ..color = annotation.color
       ..strokeWidth = annotation.strokeWidth
@@ -30,15 +32,26 @@ class AnnotationPainter extends CustomPainter {
 
     switch (annotation.type) {
       case AnnotationType.arrow:
-        _drawArrow(canvas, annotation.start, annotation.end, paint);
+        _drawArrow(canvas, start, end, paint);
         break;
       case AnnotationType.circle:
-        _drawCircle(canvas, annotation.start, annotation.end, paint);
+        _drawCircle(canvas, start, end, paint);
         break;
       case AnnotationType.rectangle:
-        _drawRectangle(canvas, annotation.start, annotation.end, paint);
+        _drawRectangle(canvas, start, end, paint);
         break;
     }
+  }
+
+  Offset _toCanvasOffset(Offset point, Size size) {
+    if (_isRelative(point)) {
+      return Offset(point.dx * size.width, point.dy * size.height);
+    }
+    return point;
+  }
+
+  bool _isRelative(Offset point) {
+    return point.dx >= 0 && point.dx <= 1 && point.dy >= 0 && point.dy <= 1;
   }
 
   void _drawArrow(Canvas canvas, Offset start, Offset end, Paint paint) {
