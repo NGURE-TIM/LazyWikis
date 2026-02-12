@@ -63,4 +63,13 @@
 - Extension resolution prioritized MIME type and falls back to original filename extension, defaulting to `.png`.
 **Follow-up Issues Found:**
 - Existing analyzer infos remain in touched files (`print` usage in export service and minor UI lint warnings) but no compile errors.
-
+---
+## feat/unique-image-filename-prefix — 2026-02-12
+**Task:** Add guide-based unique prefix to image filenames to prevent conflicts
+**Status:** COMPLETE
+**Files Modified:**
+- lib/utils/image_filename_helper.dart
+**Decisions Made:**
+- Prefix generation algorithm: ignored common guide words, extracted first numeric version token when present, built short letter abbreviations from meaningful words, and capped prefix length to 4 characters while preserving MediaWiki-safe filename sanitization/extension behavior.
+- Example mappings: `Ubuntu 24.04 Installation -> u24`, `Rocky Linux 10 Setup -> rl10`, `FreeBSD 14 Configuration -> fb14`, `Docker Setup -> dock`, `Web Server Guide -> ws`, `MySQL 8.0 Installation -> m8`.
+**Follow-up Issues Found:** None.
