@@ -156,4 +156,5 @@ flutter test
 
 ## License
 
-No explicit license file is currently included in this repository.
+This project is open source and licensed under the MIT License.
+See `LICENSE` for the full text.
