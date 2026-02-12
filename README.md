@@ -7,10 +7,9 @@ It lets you compose guides as structured steps (text, commands, screenshots with
 
 1. Build and run with Docker:
 ```bash
-docker build -t lazywikis .
-docker run --rm -p 8080:80 lazywikis
+docker run --rm -p 3030:80 tinka3301/lazywikis:latest
 ```
-2. Open `http://localhost:8080`
+2. Open `http://localhost:3030`
 3. Create a guide, add one step, add a command block, then export `WikiText (.txt)`
 
 ## What You Can Do
