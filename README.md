@@ -41,6 +41,20 @@ docker run --rm -p 8080:80 lazywikis
    - `WikiText (.txt)` for copy/paste
    - `Bundle (.zip)` when images are included
 
+## Live Demo Screenshots
+
+### Empty Dashboard
+
+![LazyWikis Empty Dashboard](docs/live-demo/01-empty-dashboard.png)
+
+### Guide Card Actions
+
+![LazyWikis Guide Card Actions](docs/live-demo/02-guide-card-actions.png)
+
+### Step Editor + Preview
+
+![LazyWikis Step Editor and Preview](docs/live-demo/03-step-editor-preview.png)
+
 ## Quick Start
 
 ### Option 1: Docker
